@@ -358,6 +358,9 @@
                         // 年齢・性別が「all,all」の行を除外（データの重複を避けるため）
                         if (row[7] === 'all' && row[8] === 'all') return null;
                         
+                        // イラン（IRN）のデータを除外（データの信頼性の問題のため）
+                        if (row[0] === 'IRN' || row[3] === 'IRN') return null;
+                        
                         return {
                             origin_code: row[0],
                             asylum_code: row[3],
@@ -458,7 +461,7 @@
                 if (topAsylumEl) topAsylumEl.textContent = topAsylum ? topAsylum[0] : '-';
                 if (topOriginEl) topOriginEl.textContent = topOrigin ? topOrigin[0] : '-';
 
-                console.log('統計情報更新完了（国内避難民・0値除外）');
+                console.log('統計情報更新完了（国内避難民・0値・イラン除外）');
                 console.log(`国際難民数: ${totalRefugees.toLocaleString()}人`);
                 console.log(`最大受け入れ国: ${topAsylum ? topAsylum[0] + ' (' + topAsylum[1].toLocaleString() + '人)' : 'なし'}`);
                 console.log(`最大出身国: ${topOrigin ? topOrigin[0] + ' (' + topOrigin[1].toLocaleString() + '人)' : 'なし'}`);
