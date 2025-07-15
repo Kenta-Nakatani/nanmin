@@ -546,9 +546,16 @@
                 z: z,
                 text: text,
                 locationmode: 'ISO-3',
-                colorscale: 'Reds',
+                colorscale: [
+                    [0, 'rgb(255,255,255)'],      // 白（少ない）
+                    [0.3, 'rgb(255,255,255)'],    // 白
+                    [0.4, 'rgb(255,0,0)'],        // 赤（多い）
+                    [0.7, 'rgb(255,0,0)'],        // 赤
+                    [0.8, 'rgb(128,0,128)'],      // 紫（めちゃ多い）
+                    [1, 'rgb(128,0,128)']         // 紫
+                ],
                 autocolorscale: false,
-                reversescale: true,
+                reversescale: false,
                 marker: {
                     line: {
                         color: 'rgb(255,255,255)',
@@ -556,7 +563,7 @@
                     }
                 },
                 colorbar: {
-                    title: '難民数',
+                    title: '難民数<br>白:少ない 赤:多い 紫:めちゃ多い',
                     thickness: 15,
                     len: 0.5,
                     x: 0.8,
