@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界難民分布マップ 2020-2024</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
+        }
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .map-container {
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        .info-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #74b9ff;
+        }
+        .info-panel h3 {
+            margin-top: 0;
+            color: #2d3436;
+        }
+        .info-panel ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info-panel li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 世界難民分布マップ</h1>
+            <p>2020-2024年 グローバル難民データの可視化</p>
+        </div>
+        
+        <div class="content">
+            <div class="info-panel">
+                <h3>📊 データについて</h3>
+                <p>このマップは、HDX (Humanitarian Data Exchange) HAPIから取得した2020年から2024年までの世界の難民データを可視化しています。</p>
+                <ul>
+                    <li><strong>データ期間:</strong> 2020年1月1日 - 2024年12月31日</li>
+                    <li><strong>データソース:</strong> HDX HAPI Refugees Global Dataset</li>
+                    <li><strong>含まれる情報:</strong> 出身国、避難先国、年齢層、性別、人口数</li>
+                </ul>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>🌍 総難民数</h3>
+                    <div class="number" id="total-refugees">読み込み中...</div>
+                    <p>2024年時点</p>
+                </div>
+                <div class="stat-card">
+                    <h3>🏳️ 対象国数</h3>
+                    <div class="number" id="total-countries">読み込み中...</div>
+                    <p>データに含まれる国</p>
+                </div>
+                <div class="stat-card">
+                    <h3>📅 データ期間</h3>
+                    <div class="number">5年</div>
+                    <p>2020-2024</p>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 データポイント</h3>
+                    <div class="number">60万+</div>
+                    <p>レコード数</p>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <h3>🗺️ 世界地図を生成中...</h3>
+                <p>データを読み込んでいます。しばらくお待ちください。</p>
+            </div>
+
+            <div id="map-container" class="map-container" style="display: none;">
+                <div id="world-map" style="height: 600px;"></div>
+            </div>
+
+            <div class="info-panel">
+                <h3>🎯 マップの使い方</h3>
+                <ul>
+                    <li><strong>ホバー:</strong> 国にマウスを合わせると詳細情報が表示されます</li>
+                    <li><strong>ズーム:</strong> マウスホイールで地図を拡大・縮小できます</li>
+                    <li><strong>パン:</strong> ドラッグで地図を移動できます</li>
+                    <li><strong>色の意味:</strong> 赤色が濃いほど難民数が多いことを示します</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // サンプルデータ（実際のCSVデータの代わり）
+        const sampleData = {
+            countries: [
+                {code: 'TUR', name: 'Turkey', refugees: 3500000},
+                {code: 'DEU', name: 'Germany', refugees: 1200000},
+                {code: 'PAK', name: 'Pakistan', refugees: 1400000},
+                {code: 'UGA', name: 'Uganda', refugees: 1500000},
+                {code: 'USA', name: 'United States', refugees: 800000},
+                {code: 'FRA', name: 'France', refugees: 600000},
+                {code: 'ITA', name: 'Italy', refugees: 500000},
+                {code: 'GBR', name: 'United Kingdom', refugees: 400000},
+                {code: 'CAN', name: 'Canada', refugees: 300000},
+                {code: 'AUS', name: 'Australia', refugees: 250000},
+                {code: 'JPN', name: 'Japan', refugees: 50000},
+                {code: 'BRA', name: 'Brazil', refugees: 200000},
+                {code: 'MEX', name: 'Mexico', refugees: 150000},
+                {code: 'ZAF', name: 'South Africa', refugees: 100000},
+                {code: 'IND', name: 'India', refugees: 300000}
+            ]
+        };
+
+        // 統計情報を更新
+        function updateStats() {
+            const totalRefugees = sampleData.countries.reduce((sum, country) => sum + country.refugees, 0);
+            document.getElementById('total-refugees').textContent = totalRefugees.toLocaleString();
+            document.getElementById('total-countries').textContent = sampleData.countries.length;
+        }
+
+        // 世界地図を作成
+        function createWorldMap() {
+            const locations = sampleData.countries.map(c => c.code);
+            const z = sampleData.countries.map(c => c.refugees);
+            const text = sampleData.countries.map(c => `${c.name}<br>難民数: ${c.refugees.toLocaleString()}人`);
+
+            const data = [{
+                type: 'choropleth',
+                locations: locations,
+                z: z,
+                text: text,
+                locationmode: 'ISO-3',
+                colorscale: 'Reds',
+                autocolorscale: false,
+                reversescale: true,
+                marker: {
+                    line: {
+                        color: 'rgb(255,255,255)',
+                        width: 2
+                    }
+                },
+                colorbar: {
+                    title: '難民数',
+                    thickness: 15,
+                    len: 0.5,
+                    x: 0.8,
+                    y: 0.5
+                }
+            }];
+
+            const layout = {
+                title: {
+                    text: '🌍 世界難民分布マップ (2024年)',
+                    font: {
+                        size: 24,
+                        color: '#2d3436'
+                    },
+                    x: 0.5
+                },
+                geo: {
+                    scope: 'world',
+                    projection: {
+                        type: 'equirectangular'
+                    },
+                    showland: true,
+                    landcolor: 'rgb(243, 243, 243)',
+                    coastlinecolor: 'rgb(204, 204, 204)',
+                    showocean: true,
+                    oceancolor: 'rgb(230, 230, 250)',
+                    showcountries: true,
+                    countrycolor: 'rgb(255, 255, 255)',
+                    showframe: false
+                },
+                margin: {
+                    l: 0,
+                    r: 0,
+                    t: 50,
+                    b: 0
+                },
+                height: 600
+            };
+
+            Plotly.newPlot('world-map', data, layout, {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+            });
+        }
+
+        // ページ読み込み時の処理
+        window.onload = function() {
+            updateStats();
+            
+            // 少し遅延させてローディング表示
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('map-container').style.display = 'block';
+                createWorldMap();
+            }, 2000);
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界難民分布マップ 2020-2024 - 実データ版</title>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: none;
+            width: 100%;
+            margin: 0;
+            background: white;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 20px;
+            max-width: none;
+            width: 100%;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.2em;
+        }
+        .stat-card .number {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        .stat-card p {
+            margin: 5px 0 0 0;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        .map-container {
+            margin: 10px 0;
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            max-width: 100vw;
+        }
+        .map-container > div {
+            width: 100vw;
+            max-width: 100vw;
+        }
+        .flow-container {
+            margin: 10px 0;
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            max-width: 100vw;
+        }
+        .flow-container > div {
+            width: 100vw;
+            max-width: 100vw;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        .loading .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .info-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #74b9ff;
+        }
+        .info-panel h3 {
+            margin-top: 0;
+            color: #2d3436;
+        }
+        .info-panel ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info-panel li {
+            margin: 5px 0;
+        }
+        .charts-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .chart-container h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #2d3436;
+        }
+        .error-message {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .map-container > div,
+            .flow-container > div {
+                max-width: 100%;
+            }
+            #world-map,
+            #arc-flow {
+                height: 500px !important;
+                width: 100vw !important;
+                max-width: 100vw !important;
+            }
+        }
+        @media (max-width: 1200px) {
+            .map-container > div,
+            .flow-container > div {
+                max-width: 100%;
+            }
+            #world-map,
+            #arc-flow {
+                height: 600px !important;
+                width: 100vw !important;
+                max-width: 100vw !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 世界難民分布マップ</h1>
+            <p>2020-2024年 グローバル難民データの可視化（実データ版）</p>
+        </div>
+        
+        <div class="content">
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <button id="tab-map" class="tab-btn" style="padding: 10px 20px; border-radius: 8px; border: none; background: #0984e3; color: white; font-size: 1em; cursor: pointer;">受け入れ分布・統計</button>
+                <button id="tab-flow" class="tab-btn" style="padding: 10px 20px; border-radius: 8px; border: none; background: #636e72; color: white; font-size: 1em; cursor: pointer;">移動フロー</button>
+            </div>
+            <div class="info-panel">
+                <h3>📊 データについて</h3>
+                <p>このマップは、HDX (Humanitarian Data Exchange) HAPIから取得した2020年から2024年までの世界の難民データを可視化しています。</p>
+                <ul>
+                    <li><strong>データ期間:</strong> 2020年1月1日 - 2024年12月31日</li>
+                    <li><strong>データソース:</strong> HDX HAPI Refugees Global Dataset</li>
+                    <li><strong>含まれる情報:</strong> 出身国、避難先国、年齢層、性別、人口数</li>
+                    <li><strong>データサイズ:</strong> 約60万レコード</li>
+                </ul>
+                <p><strong>📋 表示内容:</strong></p>
+                <ul>
+                    <li><strong>受け入れ分布・統計:</strong> 各国の難民受け入れ数、年齢・性別別統計、年別推移</li>
+                    <li><strong>移動フロー:</strong> 出身国から避難先国への移動ルート（上位10件）</li>
+                </ul>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>総難民数</h3>
+                    <div class="number" id="total-refugees">-</div>
+                    <p>最新年</p>
+                </div>
+                <div class="stat-card">
+                    <h3>対象国数</h3>
+                    <div class="number" id="total-countries">-</div>
+                    <p>データに含まれる国</p>
+                </div>
+                <div class="stat-card">
+                    <h3>データ期間</h3>
+                    <div class="number" id="data-years">-</div>
+                    <p>年数</p>
+                </div>
+                <div class="stat-card">
+                    <h3>データポイント</h3>
+                    <div class="number" id="data-records">-</div>
+                    <p>レコード数</p>
+                </div>
+                <div class="stat-card">
+                    <h3>最大受け入れ国</h3>
+                    <div class="number" id="top-asylum">-</div>
+                    <p>国コード</p>
+                </div>
+                <div class="stat-card">
+                    <h3>最大出身国</h3>
+                    <div class="number" id="top-origin">-</div>
+                    <p>国コード</p>
+                </div>
+            </div>
+
+            <div id="main-visualization">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <h3>データを読み込み中...</h3>
+                    <p>CSVファイルを解析しています。しばらくお待ちください。</p>
+                </div>
+
+                <div id="error-container" style="display: none;"></div>
+
+                <div id="map-container" class="map-container" style="display: none;">
+                    <div id="world-map" style="height: 700px; width: 100vw; max-width: 100vw; margin: 0; padding: 0;"></div>
+                </div>
+
+                <div class="charts-grid" id="charts-container" style="display: none;">
+                    <div class="chart-container">
+                        <h3>📈 年別難民数推移</h3>
+                        <div id="yearly-chart" style="height: 400px;"></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>👥 年齢層別分布</h3>
+                        <div id="age-chart" style="height: 400px;"></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>👨‍👩‍👧‍👦 性別別分布</h3>
+                        <div id="gender-chart" style="height: 400px;"></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>🏆 上位10カ国（避難先）</h3>
+                        <div id="top-countries-chart" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="flow-visualization" style="display: none;">
+                <div class="flow-container">
+                    <div class="chart-container" style="width: 100vw; max-width: 100vw; margin: 0; padding: 10px;">
+                        <h3>🌐 出身国→避難先国の移動フロー（上位10）</h3>
+                        <div id="arc-flow" style="height: 700px; width: 100vw; max-width: 100vw; margin: 0; padding: 0;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <h3>🎯 マップの使い方</h3>
+                <ul>
+                    <li><strong>ホバー:</strong> 国にマウスを合わせると詳細情報が表示されます</li>
+                    <li><strong>ズーム:</strong> マウスホイールで地図を拡大・縮小できます</li>
+                    <li><strong>パン:</strong> ドラッグで地図を移動できます</li>
+                    <li><strong>色の意味:</strong> 赤色が濃いほど難民数が多いことを示します</li>
+                    <li><strong>データ:</strong> 実際のHDX HAPIデータを使用しています</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = null;
+        let processedData = null;
+
+        // CSVファイルを読み込み
+        function loadCSVData() {
+            Papa.parse('hdx_hapi_refugees_global_2020_2024.csv', {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError('CSVファイルの読み込み中にエラーが発生しました: ' + results.errors[0].message);
+                        return;
+                    }
+                    
+                    globalData = results.data;
+                    processData();
+                },
+                error: function(error) {
+                    showError('CSVファイルの読み込みに失敗しました: ' + error.message);
+                }
+            });
+        }
+
+        // データを処理
+        function processData() {
+            console.log('データ処理を開始...');
+            
+            try {
+                // ヘッダー行をスキップ（2行目が実際のヘッダー）
+                const dataRows = globalData.slice(2);
+                
+                // データを構造化（バッチ処理でメモリ効率化）
+                const processed = [];
+                const batchSize = 1000;
+                
+                for (let i = 0; i < dataRows.length; i += batchSize) {
+                    const batch = dataRows.slice(i, i + batchSize);
+                    const processedBatch = batch.map(row => {
+                        if (row.length < 17) return null;
+                        
+                        const population = parseFloat(row[11]) || 0;
+                        if (population <= 0) return null;
+                        
+                        // 年齢・性別が「all,all」の行を除外（データの重複を避けるため）
+                        if (row[7] === 'all' && row[8] === 'all') return null;
+                        
+                        return {
+                            origin_code: row[0],
+                            asylum_code: row[3],
+                            population_group: row[6],
+                            gender: row[7],
+                            age_range: row[8],
+                            population: population,
+                            start_date: row[12],
+                            end_date: row[13]
+                        };
+                    }).filter(item => item !== null);
+                    
+                    processed.push(...processedBatch);
+                    
+                    // 進捗表示
+                    if (i % 10000 === 0) {
+                        console.log(`処理進捗: ${i}/${dataRows.length} (${Math.round(i/dataRows.length*100)}%)`);
+                    }
+                }
+
+                processedData = processed;
+                
+                // 年を抽出（効率化）
+                const yearRegex = /(\d{4})/;
+                processedData.forEach(item => {
+                    const yearMatch = item.start_date.match(yearRegex);
+                    item.year = yearMatch ? parseInt(yearMatch[1]) : null;
+                });
+
+                console.log(`処理完了: ${processedData.length}件のデータ`);
+                
+                // 統計情報更新を非同期で実行
+                setTimeout(() => {
+                    updateStats();
+                    createVisualizations();
+                }, 100);
+                
+            } catch (error) {
+                console.error('データ処理エラー:', error);
+                showError('データ処理中にエラーが発生しました: ' + error.message);
+            }
+        }
+
+        // 統計情報を更新
+        function updateStats() {
+            if (!processedData || processedData.length === 0) return;
+
+            try {
+                const years = [...new Set(processedData.map(d => d.year).filter(y => y !== null && y !== undefined))];
+                const latestYear = Math.max(...years);
+                const latestData = processedData.filter(d => d.year === latestYear);
+                
+                if (latestData.length === 0) return;
+                
+                // 国内避難民を除外し、人口数が0より大きいもののみ
+                const internationalRefugees = latestData.filter(d => 
+                    d.origin_code !== d.asylum_code && 
+                    d.population > 0
+                );
+                
+                const totalRefugees = internationalRefugees.reduce((sum, d) => sum + (d.population || 0), 0);
+                const uniqueCountries = new Set(internationalRefugees.map(d => d.asylum_code)).size;
+                const uniqueYears = years.length;
+                
+                // 避難先国別集計（国内避難民を除外、人口数>0のみ）
+                const asylumCounts = {};
+                internationalRefugees.forEach(d => {
+                    if (d.asylum_code && d.population > 0) {
+                        asylumCounts[d.asylum_code] = (asylumCounts[d.asylum_code] || 0) + d.population;
+                    }
+                });
+                
+                // 出身国別集計（国内避難民を除外、人口数>0のみ）
+                const originCounts = {};
+                internationalRefugees.forEach(d => {
+                    if (d.origin_code && d.population > 0) {
+                        originCounts[d.origin_code] = (originCounts[d.origin_code] || 0) + d.population;
+                    }
+                });
+
+                const topAsylum = Object.entries(asylumCounts)
+                    .sort(([,a], [,b]) => b - a)[0];
+                const topOrigin = Object.entries(originCounts)
+                    .sort(([,a], [,b]) => b - a)[0];
+
+                // DOM更新
+                const totalRefugeesEl = document.getElementById('total-refugees');
+                const totalCountriesEl = document.getElementById('total-countries');
+                const dataYearsEl = document.getElementById('data-years');
+                const dataRecordsEl = document.getElementById('data-records');
+                const topAsylumEl = document.getElementById('top-asylum');
+                const topOriginEl = document.getElementById('top-origin');
+
+                if (totalRefugeesEl) totalRefugeesEl.textContent = totalRefugees.toLocaleString();
+                if (totalCountriesEl) totalCountriesEl.textContent = uniqueCountries;
+                if (dataYearsEl) dataYearsEl.textContent = uniqueYears;
+                if (dataRecordsEl) dataRecordsEl.textContent = internationalRefugees.length.toLocaleString();
+                if (topAsylumEl) topAsylumEl.textContent = topAsylum ? topAsylum[0] : '-';
+                if (topOriginEl) topOriginEl.textContent = topOrigin ? topOrigin[0] : '-';
+
+                console.log('統計情報更新完了（国内避難民・0値除外）');
+                console.log(`国際難民数: ${totalRefugees.toLocaleString()}人`);
+                console.log(`最大受け入れ国: ${topAsylum ? topAsylum[0] + ' (' + topAsylum[1].toLocaleString() + '人)' : 'なし'}`);
+                console.log(`最大出身国: ${topOrigin ? topOrigin[0] + ' (' + topOrigin[1].toLocaleString() + '人)' : 'なし'}`);
+                
+                // 上位5カ国の詳細を表示
+                console.log('上位5受け入れ国:');
+                Object.entries(asylumCounts)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5)
+                    .forEach(([country, count], idx) => {
+                        console.log(`${idx + 1}. ${country}: ${count.toLocaleString()}人`);
+                    });
+            } catch (error) {
+                console.error('統計情報更新エラー:', error);
+            }
+        }
+
+        // 可視化を作成
+        function createVisualizations() {
+            if (!processedData || processedData.length === 0) return;
+
+            try {
+                const years = [...new Set(processedData.map(d => d.year).filter(y => y !== null && y !== undefined))];
+                const latestYear = Math.max(...years);
+                const latestData = processedData.filter(d => d.year === latestYear);
+                
+                if (latestData.length === 0) {
+                    console.log('最新年のデータが見つかりません');
+                    return;
+                }
+
+                // 国内避難民を除外し、人口数が0より大きいもののみ
+                const internationalRefugees = latestData.filter(d => 
+                    d.origin_code !== d.asylum_code && 
+                    d.population > 0
+                );
+
+                console.log(`可視化開始: ${latestYear}年の国際難民データ ${internationalRefugees.length}件`);
+
+                // 世界地図
+                createWorldMap(internationalRefugees);
+                
+                // 年別推移
+                createYearlyChart();
+                
+                // 年齢層別
+                createAgeChart(internationalRefugees);
+                
+                // 性別別
+                createGenderChart(internationalRefugees);
+                
+                // 上位10カ国
+                createTopCountriesChart(internationalRefugees);
+
+                // ローディングを非表示
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('map-container').style.display = 'block';
+                document.getElementById('charts-container').style.display = 'grid';
+                
+                console.log('可視化完了');
+                
+            } catch (error) {
+                console.error('可視化エラー:', error);
+                showError('可視化中にエラーが発生しました: ' + error.message);
+            }
+        }
+
+        // 世界地図を作成
+        function createWorldMap(data) {
+            const asylumCounts = {};
+            data.forEach(d => {
+                asylumCounts[d.asylum_code] = (asylumCounts[d.asylum_code] || 0) + d.population;
+            });
+
+            const locations = Object.keys(asylumCounts);
+            const z = Object.values(asylumCounts);
+            const text = locations.map(code => `${code}<br>難民数: ${asylumCounts[code].toLocaleString()}人`);
+
+            const mapData = [{
+                type: 'choropleth',
+                locations: locations,
+                z: z,
+                text: text,
+                locationmode: 'ISO-3',
+                colorscale: 'Reds',
+                autocolorscale: false,
+                reversescale: true,
+                marker: {
+                    line: {
+                        color: 'rgb(255,255,255)',
+                        width: 1
+                    }
+                },
+                colorbar: {
+                    title: '難民数',
+                    thickness: 15,
+                    len: 0.5,
+                    x: 0.8,
+                    y: 0.5
+                }
+            }];
+
+            const layout = {
+                title: {
+                    text: '🌍 世界難民受け入れ分布マップ (避難先国別)',
+                    font: { size: 20, color: '#2d3436' },
+                    x: 0.5
+                },
+                geo: {
+                    scope: 'world',
+                    projection: { type: 'mercator' },
+                    showland: true,
+                    landcolor: 'rgb(243, 243, 243)',
+                    coastlinecolor: 'rgb(204, 204, 204)',
+                    showocean: true,
+                    oceancolor: 'rgb(230, 230, 250)',
+                    showcountries: true,
+                    countrycolor: 'rgb(255, 255, 255)',
+                    showframe: false
+                },
+                margin: { l: 0, r: 0, t: 50, b: 0 },
+                height: 700,
+                width: null,
+                autosize: true
+            };
+
+            Plotly.newPlot('world-map', mapData, layout, {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+            });
+        }
+
+        // 年別推移チャート
+        function createYearlyChart() {
+            const yearlyTotals = {};
+            processedData.forEach(d => {
+                if (d.year && d.origin_code !== d.asylum_code && d.population > 0) { // 国内避難民と0値を除外
+                    yearlyTotals[d.year] = (yearlyTotals[d.year] || 0) + d.population;
+                }
+            });
+
+            const years = Object.keys(yearlyTotals).sort();
+            const totals = years.map(year => yearlyTotals[year]);
+
+            const data = [{
+                x: years,
+                y: totals,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: '#2ecc71', width: 3 },
+                marker: { size: 8, color: '#27ae60' },
+                name: '年別総数'
+            }];
+
+            const layout = {
+                title: '年別国際難民数推移',
+                xaxis: { title: '年' },
+                yaxis: { title: '難民数' },
+                margin: { l: 80, r: 50, t: 60, b: 80 },
+                font: { size: 14 }
+            };
+
+            Plotly.newPlot('yearly-chart', data, layout, { responsive: true });
+        }
+
+        // 年齢層別チャート
+        function createAgeChart(data) {
+            const ageCounts = {};
+            data.forEach(d => {
+                ageCounts[d.age_range] = (ageCounts[d.age_range] || 0) + d.population;
+            });
+
+            const data_chart = [{
+                x: Object.keys(ageCounts),
+                y: Object.values(ageCounts),
+                type: 'bar',
+                marker: { color: '#f39c12' },
+                name: '年齢層別'
+            }];
+
+            const layout = {
+                title: '年齢層別難民数',
+                xaxis: { title: '年齢層' },
+                yaxis: { title: '難民数' },
+                margin: { l: 80, r: 50, t: 60, b: 80 },
+                font: { size: 14 }
+            };
+
+            Plotly.newPlot('age-chart', data_chart, layout, { responsive: true });
+        }
+
+        // 性別別チャート
+        function createGenderChart(data) {
+            const genderCounts = {};
+            data.forEach(d => {
+                const gender = d.gender === 'f' ? '女性' : '男性';
+                genderCounts[gender] = (genderCounts[gender] || 0) + d.population;
+            });
+
+            const data_chart = [{
+                x: Object.keys(genderCounts),
+                y: Object.values(genderCounts),
+                type: 'bar',
+                marker: { color: ['#e74c3c', '#3498db'] },
+                name: '性別別'
+            }];
+
+            const layout = {
+                title: '性別別難民数',
+                xaxis: { title: '性別' },
+                yaxis: { title: '難民数' },
+                margin: { l: 80, r: 50, t: 60, b: 80 },
+                font: { size: 14 }
+            };
+
+            Plotly.newPlot('gender-chart', data_chart, layout, { responsive: true });
+        }
+
+        // 上位10カ国チャート
+        function createTopCountriesChart(data) {
+            const asylumCounts = {};
+            data.forEach(d => {
+                asylumCounts[d.asylum_code] = (asylumCounts[d.asylum_code] || 0) + d.population;
+            });
+
+            const sortedCountries = Object.entries(asylumCounts)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+
+            const data_chart = [{
+                x: sortedCountries.map(([,count]) => count),
+                y: sortedCountries.map(([code]) => code),
+                type: 'bar',
+                orientation: 'h',
+                marker: { color: '#e74c3c' },
+                name: '上位10カ国'
+            }];
+
+            const layout = {
+                title: '上位10カ国（避難先）',
+                xaxis: { title: '難民数' },
+                yaxis: { title: '国コード' },
+                margin: { l: 100, r: 50, t: 60, b: 80 },
+                font: { size: 14 }
+            };
+
+            Plotly.newPlot('top-countries-chart', data_chart, layout, { responsive: true });
+        }
+
+        // アークフロー地図作成
+        function createArcFlow() {
+            if (!processedData || processedData.length === 0) return;
+            
+            try {
+                const years = [...new Set(processedData.map(d => d.year).filter(y => y !== null && y !== undefined))];
+                const latestYear = Math.max(...years);
+                const latestData = processedData.filter(d => d.year === latestYear);
+                
+                if (latestData.length === 0) return;
+                
+                // 国内避難民を除外し、人口数が0より大きいもののみ
+                const internationalRefugees = latestData.filter(d => d.origin_code !== d.asylum_code);
+                
+                console.log('アークフロー作成開始');
+                
+                // 出身国→避難先国ごとに集計
+                const flowCounts = {};
+                internationalRefugees.forEach(d => {
+                    if (d.origin_code && d.asylum_code && d.population > 0) {
+                        const key = d.origin_code + '→' + d.asylum_code;
+                        flowCounts[key] = (flowCounts[key] || 0) + d.population;
+                    }
+                });
+                
+                // 上位10の流れを抽出
+                const topFlows = Object.entries(flowCounts)
+                    .sort(([,a],[,b]) => b - a)
+                    .slice(0, 10);
+                
+                console.log(`上位10フロー抽出完了: ${topFlows.length}件`);
+                
+                // 国コード→国名の辞書
+                const countryNames = {
+                    'AFG': 'アフガニスタン', 'TUR': 'トルコ', 'DEU': 'ドイツ',
+                    'PAK': 'パキスタン', 'UGA': 'ウガンダ', 'USA': 'アメリカ合衆国',
+                    'FRA': 'フランス', 'ITA': 'イタリア', 'GBR': 'イギリス',
+                    'CAN': 'カナダ', 'AUS': 'オーストラリア', 'JPN': '日本',
+                    'BRA': 'ブラジル', 'MEX': 'メキシコ', 'ZAF': '南アフリカ',
+                    'SYR': 'シリア', 'SDN': 'スーダン', 'IRN': 'イラン',
+                    'RUS': 'ロシア', 'UKR': 'ウクライナ', 'ETH': 'エチオピア',
+                    'COL': 'コロンビア', 'VEN': 'ベネズエラ', 'KEN': 'ケニア',
+                    'SSD': '南スーダン', 'IRQ': 'イラク', 'JOR': 'ヨルダン',
+                    'LBN': 'レバノン', 'EGY': 'エジプト', 'CHN': '中国',
+                    'IND': 'インド', 'IDN': 'インドネシア', 'THA': 'タイ',
+                    'MMR': 'ミャンマー', 'PHL': 'フィリピン', 'NGA': 'ナイジェリア',
+                    'CMR': 'カメルーン', 'TCD': 'チャド', 'NER': 'ニジェール',
+                    'DZA': 'アルジェリア', 'MAR': 'モロッコ', 'TUN': 'チュニジア',
+                    'LBY': 'リビア', 'ISR': 'イスラエル', 'SAU': 'サウジアラビア',
+                    'YEM': 'イエメン', 'SOM': 'ソマリア', 'ERI': 'エリトリア'
+                };
+                
+                // 国コード→緯度経度の辞書（主要国のみ、必要に応じて拡張）
+                const countryCoords = {
+                    'AFG': [33.9391, 67.7100], 'TUR': [39.9334, 32.8597], 'DEU': [51.1657, 10.4515],
+                    'PAK': [30.3753, 69.3451], 'UGA': [1.3733, 32.2903], 'USA': [37.0902, -95.7129],
+                    'FRA': [46.6034, 1.8883], 'ITA': [41.8719, 12.5674], 'GBR': [55.3781, -3.4360],
+                    'CAN': [56.1304, -106.3468], 'AUS': [-25.2744, 133.7751], 'JPN': [36.2048, 138.2529],
+                    'BRA': [-14.2350, -51.9253], 'MEX': [23.6345, -102.5528], 'ZAF': [-30.5595, 22.9375],
+                    'SYR': [34.8021, 38.9968], 'SDN': [12.8628, 30.2176], 'IRN': [32.4279, 53.6880],
+                    'RUS': [61.5240, 105.3188], 'UKR': [48.3794, 31.1656], 'ETH': [9.145, 40.4897],
+                    'COL': [4.5709, -74.2973], 'VEN': [6.4238, -66.5897], 'KEN': [-1.2921, 36.8219],
+                    'SSD': [6.8770, 31.3070], 'IRQ': [33.2232, 43.6793], 'JOR': [30.5852, 36.2384],
+                    'LBN': [33.8547, 35.8623], 'EGY': [26.8206, 30.8025], 'CHN': [35.8617, 104.1954],
+                    'IND': [20.5937, 78.9629], 'IDN': [-0.7893, 113.9213], 'THA': [15.8700, 100.9925],
+                    'MMR': [21.9162, 95.9560], 'PHL': [12.8797, 121.7740], 'NGA': [9.0820, 8.6753],
+                    'CMR': [7.3697, 12.3547], 'TCD': [15.4542, 18.7322], 'NER': [17.6078, 8.0817],
+                    'DZA': [28.0339, 1.6596], 'MAR': [31.7917, -7.0926], 'TUN': [33.8869, 9.5375],
+                    'LBY': [26.3351, 17.2283], 'ISR': [31.0461, 34.8516], 'SAU': [23.8859, 45.0792],
+                    'YEM': [15.5527, 48.5164], 'SOM': [5.1521, 46.1996], 'ERI': [15.1794, 39.7823]
+                };
+                
+                // アーク用データ作成
+                const arcTraces = [];
+                topFlows.forEach(([key, value], idx) => {
+                    const [origin, asylum] = key.split('→');
+                    const oCoord = countryCoords[origin];
+                    const aCoord = countryCoords[asylum];
+                    if (!oCoord || !aCoord) return;
+                    
+                    const originName = countryNames[origin] || origin;
+                    const asylumName = countryNames[asylum] || asylum;
+                    
+                    arcTraces.push({
+                        type: 'scattergeo',
+                        mode: 'lines',
+                        lon: [oCoord[1], aCoord[1]],
+                        lat: [oCoord[0], aCoord[0]],
+                        line: {
+                            width: 2 + Math.log10(value) / 2,
+                            color: `rgba(${255-idx*20},${99+idx*10},71,0.7)`
+                        },
+                        opacity: 0.8,
+                        hoverinfo: 'text',
+                        text: `<b>${originName} → ${asylumName}</b><br>難民数: ${value.toLocaleString()}人<br>移動距離: ${Math.round(calculateDistance(oCoord, aCoord))}km`,
+                        hoverlabel: {
+                            bgcolor: 'rgba(255,255,255,0.9)',
+                            bordercolor: 'rgba(0,0,0,0.5)',
+                            font: { size: 14, color: 'black' }
+                        }
+                    });
+                    
+                    // 出発点に円を描画
+                    arcTraces.push({
+                        type: 'scattergeo',
+                        mode: 'markers',
+                        lon: [oCoord[1]],
+                        lat: [oCoord[0]],
+                        marker: {
+                            size: 8,
+                            color: '#0984e3',
+                            line: { width: 1, color: '#fff' }
+                        },
+                        hoverinfo: 'text',
+                        text: `<b>${originName}（出身国）</b><br>国コード: ${origin}<br>出身難民数: ${value.toLocaleString()}人`,
+                        hoverlabel: {
+                            bgcolor: 'rgba(9,132,227,0.9)',
+                            bordercolor: 'rgba(9,132,227,0.5)',
+                            font: { size: 14, color: 'white' }
+                        }
+                    });
+                    
+                    // 到着点に円を描画
+                    arcTraces.push({
+                        type: 'scattergeo',
+                        mode: 'markers',
+                        lon: [aCoord[1]],
+                        lat: [aCoord[0]],
+                        marker: {
+                            size: 10,
+                            color: '#d35400',
+                            line: { width: 1, color: '#fff' }
+                        },
+                        hoverinfo: 'text',
+                        text: `<b>${asylumName}（避難先国）</b><br>国コード: ${asylum}<br>受け入れ難民数: ${value.toLocaleString()}人`,
+                        hoverlabel: {
+                            bgcolor: 'rgba(211,84,0,0.9)',
+                            bordercolor: 'rgba(211,84,0,0.5)',
+                            font: { size: 14, color: 'white' }
+                        }
+                    });
+                });
+                
+                const layout = {
+                    title: '🌐 出身国→避難先国の移動フロー（上位10）',
+                    showlegend: false,
+                    geo: {
+                        scope: 'world',
+                        projection: { type: 'mercator' },
+                        showland: true,
+                        landcolor: 'rgb(243, 243, 243)',
+                        coastlinecolor: 'rgb(204, 204, 204)',
+                        showocean: true,
+                        oceancolor: 'rgb(230, 230, 250)',
+                        showcountries: true,
+                        countrycolor: 'rgb(255, 255, 255)',
+                        showframe: false
+                    },
+                    margin: { l: 0, r: 0, t: 50, b: 0 },
+                    height: 700,
+                    width: null,
+                    autosize: true
+                };
+                
+                Plotly.newPlot('arc-flow', arcTraces, layout, {responsive: true});
+                console.log('アークフロー作成完了');
+                
+            } catch (error) {
+                console.error('アークフロー作成エラー:', error);
+            }
+        }
+
+        // 2点間の距離を計算（km）
+        function calculateDistance(coord1, coord2) {
+            const R = 6371; // 地球の半径（km）
+            const dLat = (coord2[0] - coord1[0]) * Math.PI / 180;
+            const dLon = (coord2[1] - coord1[1]) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(coord1[0] * Math.PI / 180) * Math.cos(coord2[0] * Math.PI / 180) *
+                     Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // タブ切り替え
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabMap = document.getElementById('tab-map');
+            const tabFlow = document.getElementById('tab-flow');
+            const mainVis = document.getElementById('main-visualization');
+            const flowVis = document.getElementById('flow-visualization');
+            tabMap.onclick = function() {
+                tabMap.style.background = '#0984e3';
+                tabFlow.style.background = '#636e72';
+                mainVis.style.display = 'block';
+                flowVis.style.display = 'none';
+            };
+            tabFlow.onclick = function() {
+                tabMap.style.background = '#636e72';
+                tabFlow.style.background = '#0984e3';
+                mainVis.style.display = 'none';
+                flowVis.style.display = 'block';
+                createArcFlow();
+            };
+        });
+
+        // エラー表示
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+            errorContainer.style.display = 'block';
+        }
+
+        // ページ読み込み時の処理
+        window.onload = function() {
+            loadCSVData();
+        };
+    </script>
+</body>
+</html> 

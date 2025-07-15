@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界難民分布マップ 2020-2024</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 40px;
+            text-align: center;
+            max-width: 600px;
+            margin: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #74b9ff;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #2d3436;
+        }
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+            text-align: left;
+        }
+        .info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 世界難民分布マップ</h1>
+            <p>2020-2024年 グローバル難民データの可視化</p>
+        </div>
+        
+        <div class="info">
+            <h3>📊 プロジェクトについて</h3>
+            <p>HDX (Humanitarian Data Exchange) HAPIから取得した2020年から2024年までの世界の難民データを可視化したプロジェクトです。</p>
+            <ul>
+                <li><strong>データ期間:</strong> 2020年1月1日 - 2024年12月31日</li>
+                <li><strong>データソース:</strong> HDX HAPI Refugees Global Dataset</li>
+                <li><strong>データサイズ:</strong> 約60万レコード</li>
+                <li><strong>技術:</strong> HTML5, CSS3, JavaScript, Plotly.js</li>
+            </ul>
+        </div>
+        
+        <a href="refugee_map_with_data.html" class="btn">🚀 マップを開く</a>
+        <a href="https://github.com/yourusername/refugee-data-visualization" class="btn">📁 GitHub</a>
+        
+        <div class="info">
+            <h3>🎯 主な機能</h3>
+            <ul>
+                <li><strong>インタラクティブ世界地図:</strong> 国別難民数の可視化</li>
+                <li><strong>統計情報:</strong> リアルタイム統計データ</li>
+                <li><strong>移動フロー:</strong> 出身国から避難先国への移動ルート</li>
+                <li><strong>年別推移:</strong> 2020-2024年の変化</li>
+                <li><strong>年齢・性別分析:</strong> 詳細な人口統計</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 
